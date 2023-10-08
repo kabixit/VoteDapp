@@ -16,7 +16,7 @@ const VotingApp = () => {
   const [candidates, setCandidates] = useState([]);
   const [newCandidateName, setNewCandidateName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [votedCandidates, setVotedCandidates] = useState([]); // Track voted candidates
+  const [candidateIndex, setCandidateIndex] = useState(-1); // Track selected candidate index
   const address = useAddress();
   const { mutateAsync: applyAsCandidate } = useContractWrite(
     contract,
@@ -36,13 +36,11 @@ const VotingApp = () => {
   };
 
   // Function to vote for a candidate
-  const handleVote = async (candidateIndex) => {
+  const handleVote = async () => {
     if (candidateIndex >= 0) {
       try {
         await vote({ args: [candidateIndex] });
         console.info('Contract call success');
-        const updatedVotedCandidates = [...votedCandidates, candidateIndex];
-        setVotedCandidates(updatedVotedCandidates);
         fetchCandidates();
       } catch (err) {
         console.error('Contract call failure', err);
@@ -56,16 +54,15 @@ const VotingApp = () => {
     setIsLoading(true);
     try {
       const candidateCount = await contract?.call('getCandidateCount');
-      const candidatesData = [];
+      const candidates = [];
 
       for (let i = 0; i < candidateCount; i++) {
         const candidateData = await contract?.call('candidates', [i]);
         const name = candidateData[0];
-        const hasVoted = votedCandidates.includes(i); // Check if the user has voted for this candidate
-        candidatesData.push({ name, hasVoted });
+        candidates.push({ name });
       }
 
-      setCandidates(candidatesData);
+      setCandidates(candidates);
     } catch (error) {
       console.error(error);
     }
@@ -94,7 +91,7 @@ const VotingApp = () => {
           onChange={(e) => setNewCandidateName(e.target.value)}
         />
         <Button
-          colorScheme="blue"
+          colorScheme="teal"
           onClick={handleApplyAsCandidate}
           isLoading={isLoading}
         >
@@ -104,14 +101,15 @@ const VotingApp = () => {
         {candidates.map((candidate, index) => (
           <Box key={index} display="flex" justifyContent="space-between">
             <Text>{candidate.name}</Text>
-            {!candidate.hasVoted && (
-              <Button
-                colorScheme="blue"
-                onClick={() => handleVote(index)}
-              >
-                Vote
-              </Button>
-            )}
+            <Button
+              colorScheme="teal"
+              onClick={() => {
+                setCandidateIndex(index);
+                handleVote();
+              }}
+            >
+              Vote
+            </Button>
           </Box>
         ))}
       </VStack>
